@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,35 +6,49 @@ import {
   FlatList,
   StyleSheet,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "@react-navigation/native";
 
-const Favorites = () => {
-  const navigation = useNavigation();
+const Favorites = ({ navigation }) => {
+  const [favoriteRoutes, setFavoriteRoutes] = useState([]);
 
-  const [favoriteRoutes, setFavoriteRoutes] = useState([
-    {
-      id: 1,
-      localAtual: "Rota Favorita 1",
-      localDesejado: "Destino Favorito 1",
-      horario: "09:15 AM",
-    },
-    {
-      id: 2,
-      localAtual: "Rota Favorita 2",
-      localDesejado: "Destino Favorito 2",
-      horario: "11:45 AM",
-    },
-  ]);
-
-  const addFavoriteRoute = (route) => {
-    setFavoriteRoutes([...favoriteRoutes, route]);
+  const loadFavoriteRoutes = async () => {
+    try {
+      const savedRoutes = await AsyncStorage.getItem("favoriteRoutes");
+      if (savedRoutes) {
+        const routes = JSON.parse(savedRoutes);
+        setFavoriteRoutes(routes);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar rotas favoritas:", error);
+    }
   };
 
-  const startRoute = (item) => {
-    //Implementar depois a logica
+  const handleDeleteRoute = async (route) => {
+    try {
+      const updatedRoutes = favoriteRoutes.filter(
+        (item) =>
+          item.localAtual !== route.localAtual ||
+          item.localDesejado !== route.localDesejado ||
+          item.horario !== route.horario
+      );
+
+      setFavoriteRoutes(updatedRoutes);
+
+      await AsyncStorage.setItem(
+        "favoriteRoutes",
+        JSON.stringify(updatedRoutes)
+      );
+    } catch (error) {
+      console.error("Erro ao excluir a rota favorita:", error);
+    }
   };
 
-  const combinedList = [...favoriteRoutes];
+  useFocusEffect(
+    React.useCallback(() => {
+      loadFavoriteRoutes();
+    }, [])
+  );
 
   return (
     <View style={styles.container}>
@@ -42,38 +56,27 @@ const Favorites = () => {
         <Text style={styles.header}>Favoritos</Text>
       </View>
 
-      {combinedList.length === 0 ? (
+      {favoriteRoutes.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>Nenhuma rota favorita</Text>
-          <TouchableOpacity
-            onPress={() => {
-              navigation.goBack();
-            }}
-            style={styles.backToMapButton}
-          >
-            <Text style={styles.backToMapButtonText}>Voltar para o Mapa</Text>
-          </TouchableOpacity>
         </View>
       ) : (
         <FlatList
-          data={combinedList}
-          keyExtractor={(item) =>
-            item.localAtual + item.localDesejado + item.horario
-          }
+          data={favoriteRoutes}
+          keyExtractor={(item, index) => index.toString()}
           renderItem={({ item }) => (
             <View style={styles.routeItem}>
               <View style={styles.routeInfo}>
                 <Text style={styles.routeName}>
-                  {item.localAtual} - {item.localDesejado}
+                  {item.localAtual} {"  "} {item.localDesejado}
                 </Text>
-
                 <Text style={styles.horario}>Horário: {item.horario}</Text>
               </View>
               <TouchableOpacity
-                onPress={() => startRoute(item)}
+                onPress={() => handleDeleteRoute(item)}
                 style={styles.routeButton}
               >
-                <Text style={styles.routeButtonText}>Refazer Rota </Text>
+                <Text style={styles.routeButtonText}>Excluir</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -132,7 +135,7 @@ const styles = StyleSheet.create({
     color: "#666",
   },
   routeButton: {
-    backgroundColor: "#7289DA",
+    backgroundColor: "#D32F2F",
     padding: 8,
     borderRadius: 4,
     marginTop: 8,

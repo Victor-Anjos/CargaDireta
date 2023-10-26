@@ -1,11 +1,8 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { View, Text, StyleSheet } from "react-native";
 import { Feather } from "@expo/vector-icons";
 
 const Info = () => {
-  const navigation = useNavigation();
-
   return (
     <View style={styles.container}>
       <View style={styles.topBar}>
@@ -39,15 +36,6 @@ const Info = () => {
           obstruída
         </Text>
       </View>
-
-      <TouchableOpacity
-        onPress={() => {
-          navigation.goBack();
-        }}
-        style={styles.backButton}
-      >
-        <Text style={styles.backButtonText}>Voltar</Text>
-      </TouchableOpacity>
     </View>
   );
 };

@@ -10,7 +10,7 @@ import {
 import MapView, { Marker, Polyline } from "react-native-maps";
 import * as Location from "expo-location";
 import { Feather } from "@expo/vector-icons";
-
+import AsyncStorage from "@react-native-async-storage/async-storage";
 const { width } = Dimensions.get("window");
 
 function Map() {
@@ -46,7 +46,7 @@ function Map() {
         if (result.length > 0) {
           const firstResult = result[0];
           setSearchResult({
-            name: firstResult.name,
+            name: firstResult.formattedAddress, // Usar formattedAddress em vez de name
             formattedAddress: firstResult.formattedAddress,
             latitude: firstResult.latitude,
             longitude: firstResult.longitude,
@@ -98,6 +98,43 @@ function Map() {
     setPolylineCoords([]);
   };
 
+  const handleSaveRoute = async () => {
+    if (searchResult && location) {
+      try {
+        let localAtual = "Sua Localização Atual";
+        if (location) {
+          const reverseGeocode = await Location.reverseGeocodeAsync({
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+          });
+          if (reverseGeocode.length > 0) {
+            localAtual = reverseGeocode[0].street;
+          }
+        }
+
+        let route = {
+          localAtual: localAtual,
+          localDesejado: searchResult
+            ? searchResult.latitude
+            : "Destino não encontrado",
+          horario: new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        };
+
+        const savedRoutes = await AsyncStorage.getItem("favoriteRoutes");
+        let routes = savedRoutes ? JSON.parse(savedRoutes) : [];
+        routes.push(route);
+        await AsyncStorage.setItem("favoriteRoutes", JSON.stringify(routes));
+
+        console.log("Rota salva com sucesso:", route);
+      } catch (error) {
+        console.error("Erro ao salvar a rota:", error);
+      }
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.mapContainer}>
@@ -113,7 +150,7 @@ function Map() {
                   latitude: searchResult.latitude,
                   longitude: searchResult.longitude,
                 }}
-                title={searchResult.name}
+                title="Destino"
                 description={searchResult.formattedAddress}
               />
             )}
@@ -124,7 +161,7 @@ function Map() {
                   latitude: location.coords.latitude,
                   longitude: location.coords.longitude,
                 }}
-                title="Local Atual"
+                title="Sua Localização Atual" // Atualize o título para sua localização atual
                 description="Você está aqui"
               >
                 <Feather name="truck" size={24} color="red" />
@@ -174,7 +211,7 @@ function Map() {
           <TouchableOpacity onPress={updatePolyline} style={styles.button}>
             <Text style={styles.buttonText}>Gerar Rota</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.button}>
+          <TouchableOpacity onPress={handleSaveRoute} style={styles.button}>
             <Text style={styles.buttonText}>Salvar Rota</Text>
           </TouchableOpacity>
         </View>

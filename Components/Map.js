@@ -20,14 +20,8 @@ function Map() {
   const [polylineCoords, setPolylineCoords] = useState([]);
   const [mapRegion, setMapRegion] = useState(null);
 
-  useEffect(() => {
-    (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        console.log("Permissão de localização não concedida.");
-        return;
-      }
-
+  const getLocation = async () => {
+    try {
       let location = await Location.getCurrentPositionAsync({});
       setLocation(location);
       setMapRegion({
@@ -36,6 +30,19 @@ function Map() {
         latitudeDelta: 0.0922,
         longitudeDelta: 0.0421,
       });
+    } catch (error) {
+      console.error("Erro ao obter localização:", error);
+    }
+  };
+
+  useEffect(() => {
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === "granted") {
+        getLocation(); // Chama a função para obter a localização
+      } else {
+        console.log("Permissão de localização não concedida.");
+      }
     })();
   }, []);
 
@@ -45,18 +52,32 @@ function Map() {
         const result = await Location.geocodeAsync(searchText);
         if (result.length > 0) {
           const firstResult = result[0];
-          setSearchResult({
-            name: firstResult.formattedAddress, // Usar formattedAddress em vez de name
-            formattedAddress: firstResult.formattedAddress,
-            latitude: firstResult.latitude,
-            longitude: firstResult.longitude,
-          });
           const newRegion = {
             latitude: firstResult.latitude,
             longitude: firstResult.longitude,
             latitudeDelta: 0.0922,
             longitudeDelta: 0.0421,
           };
+
+          // Obtém informações mais detalhadas sobre o local de destino, incluindo a subregião
+          const reverseGeocode = await Location.reverseGeocodeAsync({
+            latitude: firstResult.latitude,
+            longitude: firstResult.longitude,
+          });
+
+          if (reverseGeocode.length > 0) {
+            const subregion = reverseGeocode[0].subregion;
+            setSearchResult({
+              name: firstResult.formattedAddress,
+              formattedAddress: firstResult.formattedAddress,
+              latitude: firstResult.latitude,
+              longitude: firstResult.longitude,
+              subregion: subregion, // Adicione a subregião ao objeto de resultado
+            });
+          } else {
+            setSearchResult(null);
+          }
+
           setMapRegion(newRegion);
           updatePolyline();
         } else {
@@ -108,15 +129,15 @@ function Map() {
             longitude: location.coords.longitude,
           });
           if (reverseGeocode.length > 0) {
-            localAtual = reverseGeocode[0].street;
+            localAtual = reverseGeocode[0].subregion;
           }
         }
 
         let route = {
           localAtual: localAtual,
           localDesejado: searchResult
-            ? searchResult.latitude
-            : "Destino não encontrado",
+            ? searchResult.subregion
+            : "Destino não encontrado", // Alterado para obter a subregião
           horario: new Date().toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
@@ -161,7 +182,7 @@ function Map() {
                   latitude: location.coords.latitude,
                   longitude: location.coords.longitude,
                 }}
-                title="Sua Localização Atual" // Atualize o título para sua localização atual
+                title="Sua Localização Atual"
                 description="Você está aqui"
               >
                 <Feather name="truck" size={24} color="red" />

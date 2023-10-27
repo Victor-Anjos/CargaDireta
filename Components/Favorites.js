@@ -67,8 +67,9 @@ const Favorites = ({ navigation }) => {
           renderItem={({ item }) => (
             <View style={styles.routeItem}>
               <View style={styles.routeInfo}>
+                <Text style={styles.routeName}>Local: {item.localAtual}</Text>
                 <Text style={styles.routeName}>
-                  {item.localAtual} {"  "} {item.localDesejado}
+                  Destino: {item.localDesejado}
                 </Text>
                 <Text style={styles.horario}>Horário: {item.horario}</Text>
               </View>

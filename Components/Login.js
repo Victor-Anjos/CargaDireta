@@ -1,13 +1,15 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, Button, StyleSheet } from "react-native";
+import { auth } from "../services/firebaseConfig";
+import { signInWithEmailAndPassword } from "firebase/auth";
 
 const Login = ({ navigation }) => {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
   const handleLogin = () => {
-    if (username.trim() === "" || password.trim() === "") {
+    if (email.trim() === "" || password.trim() === "") {
       setError("Preencha todos os campos.");
 
       setTimeout(() => {
@@ -15,22 +17,29 @@ const Login = ({ navigation }) => {
       }, 2000);
     } else {
       setError("");
-      if (true) {
-        navigation.replace("TabRoutes");
-      } else {
-        setError("Credenciais incorretas. Tente novamente.");
-      }
+      signInWithEmailAndPassword(auth, email, password)
+        .then((userCredential) => {
+          const user = userCredential.user;
+          console.log("Usuário logado:", user);
+          navigation.replace("TabRoutes");
+        })
+        .catch((error) => {
+          const errorCode = error.code;
+          const errorMessage = error.message;
+          setError("Credenciais incorretas. Tente novamente.");
+          console.error(errorMessage);
+        });
     }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.logo}>CargaDireta</Text>
+      <Text style={styles.logo}>Carga Direta</Text>
       <TextInput
         style={styles.input}
-        placeholder="Usuário"
-        onChangeText={(text) => setUsername(text)}
-        value={username}
+        placeholder="Email"
+        onChangeText={(text) => setEmail(text)}
+        value={email}
       />
       <TextInput
         style={styles.input}
@@ -58,9 +67,10 @@ const styles = StyleSheet.create({
   input: {
     width: 300,
     height: 40,
-    borderColor: "#7289da",
-    borderWidth: 1,
-    marginBottom: 16,
+    borderBottomColor: "#7289da",
+    color: "white",
+    borderBottomWidth: 1,
+    marginBottom: 20,
     paddingLeft: 8,
   },
   errorText: {
@@ -71,13 +81,11 @@ const styles = StyleSheet.create({
     fontSize: 36,
     fontWeight: "bold",
     color: "#fff",
-    marginBottom: 50,
-    borderBottomWidth: 1,
-    borderColor: "#FFFFFF",
-    borderStyle: "solid",
+    marginBottom: 30,
   },
   buttonContainer: {
     width: 300,
+    marginTop: 15,
   },
 });
 

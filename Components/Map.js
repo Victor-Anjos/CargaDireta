@@ -11,14 +11,28 @@ import MapView, { Marker, Polyline } from "react-native-maps";
 import * as Location from "expo-location";
 import { Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
 const { width } = Dimensions.get("window");
 
-function Map() {
+const Map = () => {
   const [location, setLocation] = useState(null);
   const [searchText, setSearchText] = useState("");
   const [searchResult, setSearchResult] = useState(null);
   const [polylineCoords, setPolylineCoords] = useState([]);
   const [mapRegion, setMapRegion] = useState(null);
+  const [loadingLocation, setLoadingLocation] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === "granted") {
+        await getLocation();
+        setLoadingLocation(false);
+      } else {
+        console.log("Permissão de localização não concedida.");
+      }
+    })();
+  }, []);
 
   const getLocation = async () => {
     try {
@@ -35,17 +49,6 @@ function Map() {
     }
   };
 
-  useEffect(() => {
-    (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === "granted") {
-        getLocation(); // Chama a função para obter a localização
-      } else {
-        console.log("Permissão de localização não concedida.");
-      }
-    })();
-  }, []);
-
   const handleSearch = async () => {
     if (searchText) {
       try {
@@ -59,7 +62,6 @@ function Map() {
             longitudeDelta: 0.0421,
           };
 
-          // Obtém informações mais detalhadas sobre o local de destino, incluindo a subregião
           const reverseGeocode = await Location.reverseGeocodeAsync({
             latitude: firstResult.latitude,
             longitude: firstResult.longitude,
@@ -72,7 +74,7 @@ function Map() {
               formattedAddress: firstResult.formattedAddress,
               latitude: firstResult.latitude,
               longitude: firstResult.longitude,
-              subregion: subregion, // Adicione a subregião ao objeto de resultado
+              subregion: subregion,
             });
           } else {
             setSearchResult(null);
@@ -92,10 +94,6 @@ function Map() {
 
   const handleTextChange = (text) => {
     setSearchText(text);
-  };
-
-  const clearSearchText = () => {
-    setSearchText("");
   };
 
   const updatePolyline = () => {
@@ -137,7 +135,7 @@ function Map() {
           localAtual: localAtual,
           localDesejado: searchResult
             ? searchResult.subregion
-            : "Destino não encontrado", // Alterado para obter a subregião
+            : "Destino não encontrado",
           horario: new Date().toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
@@ -156,55 +154,70 @@ function Map() {
     }
   };
 
+  const markers = [];
+  const polyline =
+    polylineCoords.length === 2 ? (
+      <Polyline
+        coordinates={polylineCoords}
+        strokeWidth={3}
+        strokeColor="#7289DA"
+      />
+    ) : null;
+
+  if (searchResult) {
+    markers.push(
+      <Marker
+        key="destinationMarker"
+        coordinate={{
+          latitude: searchResult.latitude,
+          longitude: searchResult.longitude,
+        }}
+        title="Destino"
+        description={searchResult.formattedAddress}
+      />
+    );
+  }
+
+  if (location) {
+    markers.push(
+      <Marker
+        key="currentLocationMarker"
+        coordinate={{
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        }}
+        title="Sua Localização Atual"
+        description="Você está aqui"
+      >
+        <Feather name="truck" size={26} color="#7289DA" />
+      </Marker>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      <View style={styles.mapContainer}>
-        {mapRegion ? (
-          <MapView
-            style={styles.map}
-            initialRegion={mapRegion}
-            key={`${mapRegion.latitude}_${mapRegion.longitude}`}
-          >
-            {searchResult && (
-              <Marker
-                coordinate={{
-                  latitude: searchResult.latitude,
-                  longitude: searchResult.longitude,
-                }}
-                title="Destino"
-                description={searchResult.formattedAddress}
-              />
-            )}
-
-            {location && (
-              <Marker
-                coordinate={{
-                  latitude: location.coords.latitude,
-                  longitude: location.coords.longitude,
-                }}
-                title="Sua Localização Atual"
-                description="Você está aqui"
-              >
-                <Feather name="truck" size={24} color="red" />
-              </Marker>
-            )}
-
-            {polylineCoords.length === 2 && (
-              <Polyline
-                coordinates={polylineCoords}
-                strokeWidth={3}
-                strokeColor="red"
-              />
-            )}
-          </MapView>
-        ) : null}
+      <View style={styles.topBar}>
+        <Text style={styles.header}>Mapa</Text>
       </View>
-      {!location && (
+      {loadingLocation && (
         <View style={styles.loadContainer}>
           <Text style={styles.load}>Carregando a localização...</Text>
         </View>
       )}
-
+      {!loadingLocation && (
+        <View style={styles.mapContainer}>
+          {mapRegion && (
+            <MapView
+              style={styles.map}
+              initialRegion={mapRegion}
+              key={`${mapRegion.latitude}_${mapRegion.longitude}`}
+            >
+              {markers}
+              {polyline}
+            </MapView>
+          )}
+        </View>
+      )}
       <View style={styles.searchContainer}>
         <View style={styles.inputContainer}>
           <TextInput
@@ -213,20 +226,11 @@ function Map() {
             onChangeText={handleTextChange}
             value={searchText}
           />
-          {searchText.length > 0 && (
-            <TouchableOpacity
-              onPress={clearSearchText}
-              style={styles.clearButton}
-            >
-              <Feather name="x" size={20} color="#7289da" />
-            </TouchableOpacity>
-          )}
         </View>
         <TouchableOpacity onPress={handleSearch} style={styles.searchButton}>
           <Text style={styles.searchButtonText}>Pesquisar</Text>
         </TouchableOpacity>
       </View>
-
       {searchResult && (
         <View style={styles.buttonContainer}>
           <TouchableOpacity onPress={updatePolyline} style={styles.button}>
@@ -237,7 +241,6 @@ function Map() {
           </TouchableOpacity>
         </View>
       )}
-
       {searchResult && (
         <View style={styles.buttonContainer}>
           <TouchableOpacity
@@ -250,12 +253,12 @@ function Map() {
       )}
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    marginBottom: 75,
+    marginBottom: 60,
   },
   mapContainer: {
     flex: 1,
@@ -275,13 +278,24 @@ const styles = StyleSheet.create({
     color: "#333",
   },
   searchContainer: {
-    backgroundColor: "#ffffff",
+    backgroundColor: "#222",
     padding: 16,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     borderBottomWidth: 1,
     borderBottomColor: "#cccccc",
+  },
+  topBar: {
+    height: 100,
+    backgroundColor: "#7289DA",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  header: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "white",
   },
   inputContainer: {
     flex: 1,
@@ -291,15 +305,10 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     height: 40,
-    backgroundColor: "#f0f0f0",
+    backgroundColor: "#ccc",
     paddingHorizontal: 8,
     borderRadius: 8,
     color: "#000",
-  },
-  clearButton: {
-    padding: 8,
-    alignItems: "center",
-    justifyContent: "center",
   },
   searchButton: {
     backgroundColor: "#7289DA",
@@ -315,7 +324,7 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     flexDirection: "row",
-    marginTop: 16,
+    marginTop: 12,
     paddingHorizontal: 16,
   },
   button: {
@@ -333,6 +342,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 15,
+    marginBottom: 10,
     flex: 1,
     marginLeft: 8,
   },

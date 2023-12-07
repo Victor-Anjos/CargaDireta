@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
     marginVertical: 8,
     padding: 12,
     borderRadius: 8,
-    marginHorizontal: 16,
+    marginHorizontal: 13,
     backgroundColor: "#f0f0f0",
   },
   routeInfo: {

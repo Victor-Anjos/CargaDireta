@@ -16,7 +16,7 @@ export default function AuthenticatedApp() {
         tabBarStyle: {
           height: 60,
           paddingHorizontal: 5,
-          paddingTop: 0,
+          paddingTop: 10,
           backgroundColor: "rgb(17,18,20)",
           position: "absolute",
         },

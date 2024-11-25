@@ -97,7 +97,13 @@ const Map = () => {
   };
 
   const updatePolyline = () => {
-    if (location && searchResult) {
+    if (
+      location &&
+      searchResult &&
+      location.coords &&
+      searchResult.latitude &&
+      searchResult.longitude
+    ) {
       const coords = [
         {
           latitude: location.coords.latitude,
@@ -118,7 +124,13 @@ const Map = () => {
   };
 
   const handleSaveRoute = async () => {
-    if (searchResult && location) {
+    if (
+      searchResult &&
+      location &&
+      location.coords &&
+      searchResult.latitude &&
+      searchResult.longitude
+    ) {
       try {
         let localAtual = "Sua Localização Atual";
         if (location) {
@@ -151,20 +163,14 @@ const Map = () => {
       } catch (error) {
         console.error("Erro ao salvar a rota:", error);
       }
+    } else {
+      console.error("Não foi possível salvar a rota: Dados incompletos.");
     }
   };
 
   const markers = [];
-  const polyline =
-    polylineCoords.length === 2 ? (
-      <Polyline
-        coordinates={polylineCoords}
-        strokeWidth={3}
-        strokeColor="#7289DA"
-      />
-    ) : null;
 
-  if (searchResult) {
+  if (searchResult && searchResult.latitude && searchResult.longitude) {
     markers.push(
       <Marker
         key="destinationMarker"
@@ -178,7 +184,7 @@ const Map = () => {
     );
   }
 
-  if (location) {
+  if (location && location.coords) {
     markers.push(
       <Marker
         key="currentLocationMarker"
@@ -193,6 +199,15 @@ const Map = () => {
       </Marker>
     );
   }
+
+  const polyline =
+    polylineCoords.length === 2 ? (
+      <Polyline
+        coordinates={polylineCoords}
+        strokeWidth={3}
+        strokeColor="#7289DA"
+      />
+    ) : null;
 
   return (
     <View style={styles.container}>
@@ -242,7 +257,7 @@ const Map = () => {
         </View>
       )}
       {searchResult && (
-        <View style={styles.buttonContainer}>
+        <View style={styles.deleteButtonContainer}>
           <TouchableOpacity
             onPress={clearLocationAndRoute}
             style={styles.buttonDelete}
@@ -278,7 +293,7 @@ const styles = StyleSheet.create({
     color: "#333",
   },
   searchContainer: {
-    backgroundColor: "#222",
+    backgroundColor: "#222", // Mudança para a cor solicitada
     padding: 16,
     flexDirection: "row",
     alignItems: "center",
@@ -304,51 +319,53 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    height: 40,
-    backgroundColor: "#ccc",
-    paddingHorizontal: 8,
+    padding: 12,
     borderRadius: 8,
-    color: "#000",
+    borderWidth: 1,
+    borderColor: "#ddd",
+    fontSize: 16,
+    backgroundColor: "#fff",
   },
   searchButton: {
+    padding: 12,
     backgroundColor: "#7289DA",
-    padding: 10,
-    alignItems: "center",
-    justifyContent: "center",
     borderRadius: 8,
     marginLeft: 8,
+    width: "40%", // Alterado para largura desejada
   },
   searchButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
+    color: "white",
+    fontSize: 16,
+    textAlign: "center",
   },
   buttonContainer: {
-    flexDirection: "row",
-    marginTop: 12,
-    paddingHorizontal: 16,
+    marginTop: 16,
+    width: "100%", // Para alinhar com o tamanho do container
   },
   button: {
+    paddingVertical: 14,
+    paddingHorizontal: 20,
     backgroundColor: "#7289DA",
-    padding: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 15,
-    flex: 1,
-    marginLeft: 8,
+    borderRadius: 8,
+    marginBottom: 10,
+    width: "100%", // Botões de gerar e salvar com o tamanho do container
   },
   buttonDelete: {
-    backgroundColor: "#D32F2F",
-    padding: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 15,
-    marginBottom: 10,
-    flex: 1,
-    marginLeft: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    backgroundColor: "#e74c3c",
+    borderRadius: 8,
+    Bottom: 10,
+    width: "100%", // Botão de excluir com o tamanho do container
   },
   buttonText: {
-    color: "#fff",
-    fontWeight: "bold",
+    color: "white",
+    fontSize: 16,
+    textAlign: "center",
+  },
+  deleteButtonContainer: {
+    marginTop: 16,
+    width: "100%", // Botão de excluir com o tamanho do container
   },
 });
 
